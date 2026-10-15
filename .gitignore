@@ -1,0 +1,20 @@
+bin/
+obj/
+BUILD/
+*.user
+*.suo
+.vs/
+.idea/
+__pycache__/
+*.pyc
+# Never commit game assemblies or decompiled code (SCP:SL EULA §12).
+*.dll
+*.pdb
+decompiled/
+research-local/
+
+# Maintainer-specific private words for check-publishable.py (never committed).
+.private-words
+
+# Local Claude Code state
+.claude/settings.local.json

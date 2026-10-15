@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Unit tests for SlKit's pure logic (src/Core): scheduler deadlines, stagger planning, percentiles,
+    ring buffer, token bucket, bounded queue, interval gate, failure backoff, bounded read and text
+    decoding, copy report. The frame profiler's CSV line (src/Runtime/Profiling) is compiled in too.
+    Plain .NET with a tiny assertion runner in Program.cs,
+    so the repository needs no NuGet test framework. Only the Unity-free files are compiled in, which
+    is why this project does not need the game assemblies. Exit code 0 means every test passed.
+
+    Run it with "dotnet run" and this project file as the project argument.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>SlKit.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../Common/*.cs" Link="Common/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Core/**/*.cs" Link="Core/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../src/Runtime/Profiling/FrameCsvLine.cs" Link="Runtime/Profiling/FrameCsvLine.cs" />
+    <Compile Include="../../src/Runtime/Profiling/FrameCsvBatch.cs" Link="Runtime/Profiling/FrameCsvBatch.cs" />
+  </ItemGroup>
+</Project>

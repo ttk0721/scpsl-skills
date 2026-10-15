@@ -1,0 +1,4 @@
+<Project>
+  <!-- Same game-assembly build setup as SlKit (SL_REFERENCES, FrameworkPathOverride, server BCL). -->
+  <Import Project="$(MSBuildThisFileDirectory)../SlKit/Directory.Build.props" />
+</Project>

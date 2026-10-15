@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The plugin half of the testing pattern. Core/*.cs is plain C# with no game references; this
+    project compiles it into the plugin, and Tests/TestingPattern.Tests.csproj compiles the same
+    files on plain .NET. Tests/ is excluded here because it is a separate net10 project.
+  -->
+  <PropertyGroup>
+    <AssemblyName>Examples.TestingPattern</AssemblyName>
+    <RootNamespace>Examples.TestingPattern</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Tests/**" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared references come from ../Directory.Build.props. -->
+  <PropertyGroup>
+    <AssemblyName>Examples.AddingExternalIntegrations</AssemblyName>
+    <RootNamespace>Examples.AddingExternalIntegrations</RootNamespace>
+  </PropertyGroup>
+</Project>

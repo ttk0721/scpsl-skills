@@ -1,0 +1,6 @@
+<Project>
+  <!--
+    Deliberately empty. It stops MSBuild from walking up to examples/Directory.Build.props, which
+    pins net48 and the game assemblies. This runner is plain net10.0 and needs neither.
+  -->
+</Project>

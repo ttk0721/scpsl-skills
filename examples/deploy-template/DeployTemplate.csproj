@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- References, FrameworkPathOverride and the SL_REFERENCES default live in Directory.Build.props. -->
+  <PropertyGroup>
+    <RootNamespace>Examples.DeployTemplate</RootNamespace>
+
+    <!--
+      Per-client branding. One property drives the assembly name (the [Prefix] of every Logger line,
+      and the file name the operator sees) and one assembly attribute the code can read back.
+        dotnet build -c Release                      -> DeployTemplate.dll
+        dotnet build -c Release -p:Client=acme       -> DeployTemplate.acme.dll
+      Client must be path-safe: it ends up in a file name and a log prefix.
+    -->
+    <Client Condition="'$(Client)' == ''">default</Client>
+    <AssemblyName Condition="'$(Client)' == 'default'">DeployTemplate</AssemblyName>
+    <AssemblyName Condition="'$(Client)' != 'default'">DeployTemplate.$(Client)</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="Client" Value="$(Client)" />
+  </ItemGroup>
+</Project>

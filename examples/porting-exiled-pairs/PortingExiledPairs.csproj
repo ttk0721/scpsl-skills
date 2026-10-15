@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared references come from ../Directory.Build.props. -->
+  <PropertyGroup>
+    <AssemblyName>Examples.PortingExiledPairs</AssemblyName>
+    <RootNamespace>Examples.PortingExiledPairs</RootNamespace>
+  </PropertyGroup>
+</Project>

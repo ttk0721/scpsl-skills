@@ -1,0 +1,7 @@
+# Corpus matches that were reviewed by hand and are NOT copied code. Read by tools/check-publishable.py.
+# Format, one entry per line:  file | snippet of the source line (>= 25 chars) | reason (>= 10 chars)
+# Keep this list tiny. It only silences the two corpus checks (never signatures, artefacts or private
+# words), and an entry that no longer matches anything is itself reported, so it cannot rot into a
+# standing hole. A match inside a long string or a changed fragment is NOT reviewable here: rewrite it.
+examples/adding-per-player-tracking/JournalStore.cs | using (var fs = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) | standard BCL idiom (open a log for shared reading), not game logic
+skills/scpsl-server-specific-settings/sss-api-reference.md | static void SendToPlayer(ReferenceHub hub, ServerSpecificSettingBase[] collection, int? versionOverride = null); | public SSS API signature in a reference table (naming a public type and its parameters, no body)

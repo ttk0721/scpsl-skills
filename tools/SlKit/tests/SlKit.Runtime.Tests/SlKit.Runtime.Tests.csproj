@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Behaviour tests for SlKit runtime pieces that do not touch Unity: SlHttpClient against a real
+    local HTTP server, and the Background owner registry across two assemblies. The real sources are
+    compiled for net10.0; the only LabAPI-bound pieces they call (MainThread, SlLog) are replaced by
+    the stubs in Stubs.cs, which record what would have been posted or logged.
+
+    What this cannot show: anything specific to the server's Mono BCL (its HTTP handler and
+    connection limits). Those facts come from the game's own assemblies; see the SlHttp section of
+    the README. Run with "dotnet run" and this project file as the project argument; exit code 0
+    means every test passed.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>SlKit.Runtime.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../Common/*.cs" Link="Common/%(Filename)%(Extension)" />
+    <Compile Include="../Common/Stubs/RecordingLogger.cs" Link="Common/Stubs/RecordingLogger.cs" />
+    <Compile Include="../../src/Core/**/*.cs" Link="Core/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../src/Runtime/SlHttp.cs" Link="Runtime/SlHttp.cs" />
+    <Compile Include="../../src/Runtime/SlHttpClient.cs" Link="Runtime/SlHttpClient.cs" />
+    <Compile Include="../../src/Runtime/Http/*.cs" Link="Runtime/Http/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Runtime/SlHttpOptions.cs" Link="Runtime/SlHttpOptions.cs" />
+    <Compile Include="../../src/Runtime/HttpResult.cs" Link="Runtime/HttpResult.cs" />
+    <Compile Include="../../src/Runtime/Background.cs" Link="Runtime/Background.cs" />
+    <Compile Include="../../src/Runtime/BackgroundWorker.cs" Link="Runtime/BackgroundWorker.cs" />
+    <Compile Include="../../src/Runtime/RateLimitedLog.cs" Link="Runtime/RateLimitedLog.cs" />
+    <Compile Include="../../src/Runtime/RateLimitedLogger.cs" Link="Runtime/RateLimitedLogger.cs" />
+    <Compile Include="../../src/Runtime/Logging/*.cs" Link="Runtime/Logging/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

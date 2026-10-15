@@ -1,0 +1,61 @@
+<Project>
+  <!--
+    Standalone build setup for one SCP:SL LabAPI plugin. Copy this file and DeployTemplate.csproj
+    into your own repository; nothing here depends on the rest of scpsl-skills.
+
+    MSBuild uses the NEAREST Directory.Build.props walking up from the project, so this file also
+    shadows examples/Directory.Build.props (which imports SlKit). That is intended: the template
+    must build with no SlKit.
+
+    Point SL_REFERENCES at the server's SCPSL_Data/Managed folder:
+      dotnet build -c Release -p:SL_REFERENCES="<install>/SCPSL_Data/Managed"
+    or set the SL_REFERENCES environment variable (an environment variable is also a property).
+    Nothing from the game is copied into the repository. Never commit game DLLs to a public repo.
+  -->
+  <PropertyGroup>
+    <!-- Defaults: Steam client library. A SteamCMD or other-library install is NOT a default: set SL_REFERENCES. -->
+    <SL_REFERENCES Condition="'$(SL_REFERENCES)' == '' and '$(OS)' != 'Windows_NT'">$(HOME)/.local/share/Steam/steamapps/common/SCP Secret Laboratory Dedicated Server/SCPSL_Data/Managed</SL_REFERENCES>
+    <SL_REFERENCES Condition="'$(SL_REFERENCES)' == '' and '$(OS)' == 'Windows_NT'">$(MSBuildProgramFiles32)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed</SL_REFERENCES>
+
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+
+    <!--
+      The CS1061 fix. The server runs Unity's Mono with a corefx-derived mscorlib, which has
+      KeyValuePair.Deconstruct, Dictionary.Remove(key, out v), Span<T>, ... that the .NET Framework 4.8
+      reference pack lacks. Without the next three lines the SDK silently resolves mscorlib from the
+      desktop pack even when you reference Managed/mscorlib.dll by hand.
+    -->
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <FrameworkPathOverride>$(SL_REFERENCES)</FrameworkPathOverride>
+    <AddAdditionalExplicitAssemblyReferences>false</AddAdditionalExplicitAssemblyReferences>
+
+    <!-- Ship one DLL. No .deps.json, no binding redirects. -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>false</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <!-- A wrong SL_REFERENCES otherwise ends in dozens of "predefined type System.Object is not defined" errors. -->
+  <Target Name="CheckSlReferences" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(SL_REFERENCES)/mscorlib.dll')">
+    <Error Text="SL_REFERENCES does not point at a SCPSL_Data/Managed folder (no mscorlib.dll in '$(SL_REFERENCES)'). Pass -p:SL_REFERENCES=&quot;&lt;install&gt;/SCPSL_Data/Managed&quot;." />
+  </Target>
+
+  <!-- The four BCL assemblies come from Managed/, exactly as LabAPI itself is built. Private=false: never copied to bin/. -->
+  <ItemGroup>
+    <Reference Include="mscorlib"><HintPath>$(SL_REFERENCES)/mscorlib.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System"><HintPath>$(SL_REFERENCES)/System.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.Core"><HintPath>$(SL_REFERENCES)/System.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="netstandard"><HintPath>$(SL_REFERENCES)/netstandard.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <!-- Game assemblies: reference, never ship (Private=false on every one). -->
+  <ItemGroup>
+    <Reference Include="LabApi"><HintPath>$(SL_REFERENCES)/LabApi.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(SL_REFERENCES)/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp-firstpass"><HintPath>$(SL_REFERENCES)/Assembly-CSharp-firstpass.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(SL_REFERENCES)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

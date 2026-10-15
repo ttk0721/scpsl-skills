@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Template for every example: shared references come from ../Directory.Build.props. -->
+  <PropertyGroup>
+    <AssemblyName>Examples.NetworkingSnippets</AssemblyName>
+    <RootNamespace>Examples.NetworkingSnippets</RootNamespace>
+  </PropertyGroup>
+</Project>

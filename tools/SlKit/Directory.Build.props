@@ -1,0 +1,70 @@
+<Project>
+  <!--
+    Shared build settings for everything under tools/SlKit, and (through an explicit import) for the
+    other net48 tools and the examples of this repository.
+
+    SlKit compiles against the game's own SCPSL_Data/Managed assemblies instead of NuGet reference
+    packs, so the compiler sees exactly the BCL the server runs (Unity's Mono profile), not the
+    desktop .NET Framework one: an API the server lacks fails at compile time, and members that exist
+    only on the server do not fail with CS1061. Nothing from the game is copied into the repository.
+    Override the location with
+      dotnet build -p:SL_REFERENCES="/path/to/SCPSL_Data/Managed"
+    or the SL_REFERENCES environment variable.
+
+    tests/ has an empty Directory.Build.props: the net10 test projects must not inherit the
+    net48-only settings below.
+  -->
+  <PropertyGroup>
+    <!--
+      Default install locations of the Steam dedicated server; anything else (SteamCMD
+      force_install_dir, another drive, a hosting panel) must pass SL_REFERENCES explicitly.
+      Environment variables are MSBuild properties, so $(HOME) and $(MSBuildProgramFiles32) resolve
+      per user without hardcoding a username.
+    -->
+    <_SlDefaultLinux>$(HOME)/.local/share/Steam/steamapps/common/SCP Secret Laboratory Dedicated Server/SCPSL_Data/Managed</_SlDefaultLinux>
+    <_SlDefaultWindows>$(MSBuildProgramFiles32)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed</_SlDefaultWindows>
+    <SL_REFERENCES Condition="'$(SL_REFERENCES)' == '' And '$(HOME)' != '' And Exists('$(_SlDefaultLinux)')">$(_SlDefaultLinux)</SL_REFERENCES>
+    <SL_REFERENCES Condition="'$(SL_REFERENCES)' == '' And Exists('$(_SlDefaultWindows)')">$(_SlDefaultWindows)</SL_REFERENCES>
+
+    <!--
+      Without these, the SDK silently adds the Microsoft.NETFramework.ReferenceAssemblies package
+      and resolves mscorlib / System.Net.Http from the desktop .NET Framework 4.8 reference pack
+      instead of the HintPaths below (checked in the csc command line). Pointing the framework
+      directory at the game's Managed folder makes every framework assembly come from the server's
+      own Mono BCL. All three only affect .NETFramework targets.
+    -->
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <FrameworkPathOverride>$(SL_REFERENCES)</FrameworkPathOverride>
+    <AddAdditionalExplicitAssemblyReferences>false</AddAdditionalExplicitAssemblyReferences>
+  </PropertyGroup>
+
+  <!-- A clear message instead of dozens of "type not found" errors when the game is elsewhere. -->
+  <Target Name="SlCheckReferences" BeforeTargets="GetReferenceAssemblyPaths;ResolveAssemblyReferences" Condition="'$(TargetFramework)' == 'net48'">
+    <Error Condition="'$(SL_REFERENCES)' == '' Or !Exists('$(SL_REFERENCES)/LabApi.dll')"
+           Text="SCP:SL server assemblies not found. Pass the Managed folder of your dedicated server: dotnet build -p:SL_REFERENCES=&quot;/path/to/SCP Secret Laboratory Dedicated Server/SCPSL_Data/Managed&quot; (or set the SL_REFERENCES environment variable)." />
+  </Target>
+
+  <!--
+    Base game-runtime BCL for every net48 project here. Item conditions are evaluated after all
+    properties, so $(TargetFramework) from the project file is visible at this point.
+    Projects targeting modern .NET (e.g. pure-logic tests) do not get these.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="mscorlib">
+      <HintPath>$(SL_REFERENCES)/mscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>$(SL_REFERENCES)/System.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Core">
+      <HintPath>$(SL_REFERENCES)/System.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="netstandard">
+      <HintPath>$(SL_REFERENCES)/netstandard.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,6 @@
+<Project>
+  <!--
+    Empty on purpose. MSBuild stops at the nearest Directory.Build.props, so the net10 test projects
+    below inherit neither the library's props nor the repository root's (net48 references, x64, ...).
+  -->
+</Project>

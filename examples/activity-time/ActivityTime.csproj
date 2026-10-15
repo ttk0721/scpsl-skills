@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Example for writing-scpsl-plans: the layout a plan asks for.
+      Core/            pure C#, no LabAPI/Unity/Mirror; unit-tested on plain .NET (tests/)
+      *.cs (root)      thin LabAPI wiring, config
+    Shared game references come from ../Directory.Build.props.
+  -->
+  <PropertyGroup>
+    <AssemblyName>Examples.ActivityTime</AssemblyName>
+    <RootNamespace>Examples.ActivityTime</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The test project lives below this folder and has its own obj/: keep it out of the plugin. -->
+    <Compile Remove="tests/**" />
+  </ItemGroup>
+</Project>

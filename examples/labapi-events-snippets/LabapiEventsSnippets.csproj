@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Template for every example: shared references come from ../Directory.Build.props. -->
+  <PropertyGroup>
+    <AssemblyName>Examples.LabapiEventsSnippets</AssemblyName>
+    <RootNamespace>Examples.LabapiEventsSnippets</RootNamespace>
+  </PropertyGroup>
+</Project>

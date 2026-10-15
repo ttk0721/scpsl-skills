@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Behaviour tests for SlClock and MainThread themselves: the real sources compiled for net10.0
+    against the small Unity/LabAPI stand-ins in Stubs.cs (a PlayerLoop tree the test "runs" one
+    frame at a time, ServerEvents.RoundRestarted, Time.frameCount, Awaitable.MainThreadAsync and a
+    recording Logger). They cover what the stubs can model: which thread may install the clock,
+    round-restart wiring, per-job failure settings, and that no public static setting is left that
+    one plugin could change for all.
+
+    What this cannot show: the real engine. That Unity's Awaitable answers correctly on the
+    dedicated server, and that the clock runs in the right PlayerLoop phase, are only checked by
+    compiling against the game's assemblies and on a live server. Run with "dotnet run" and this
+    project file as the project argument; exit code 0 means every test passed.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>SlKit.Clock.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../Common/*.cs" Link="Common/%(Filename)%(Extension)" />
+    <Compile Include="../Common/Stubs/RecordingLogger.cs" Link="Common/Stubs/RecordingLogger.cs" />
+    <Compile Include="../../src/Core/**/*.cs" Link="Core/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../src/Runtime/SlClock.cs" Link="Runtime/SlClock.cs" />
+    <Compile Include="../../src/Runtime/ClockJobHandle.cs" Link="Runtime/ClockJobHandle.cs" />
+    <Compile Include="../../src/Runtime/Clock/*.cs" Link="Runtime/Clock/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Runtime/Threading/*.cs" Link="Runtime/Threading/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Runtime/ClockJobStats.cs" Link="Runtime/ClockJobStats.cs" />
+    <Compile Include="../../src/Runtime/JobFailureReporter.cs" Link="Runtime/JobFailureReporter.cs" />
+    <Compile Include="../../src/Runtime/ClockScope.cs" Link="Runtime/ClockScope.cs" />
+    <Compile Include="../../src/Runtime/MainThread.cs" Link="Runtime/MainThread.cs" />
+    <Compile Include="../../src/Runtime/PlayerLoopInjector.cs" Link="Runtime/PlayerLoopInjector.cs" />
+    <Compile Include="../../src/Runtime/CopyDetector.cs" Link="Runtime/CopyDetector.cs" />
+    <Compile Include="../../src/Runtime/SlLog.cs" Link="Runtime/SlLog.cs" />
+  </ItemGroup>
+</Project>

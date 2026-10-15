@@ -1,0 +1,22 @@
+{
+  "name": "scpsl-skills",
+  "description": "Skills and tools for writing correct, cheap SCP: Secret Laboratory server plugins on LabAPI: event costs, threading and timing, HUDs, measurement, porting from EXILED",
+  "version": "0.2.0",
+  "author": {
+    "name": "ttk0721"
+  },
+  "homepage": "https://github.com/ttk0721/scpsl-skills",
+  "repository": "https://github.com/ttk0721/scpsl-skills",
+  "license": "MIT",
+  "keywords": [
+    "scp-sl",
+    "scpsl",
+    "labapi",
+    "exiled",
+    "unity",
+    "mirror",
+    "game-server",
+    "performance",
+    "plugins"
+  ]
+}

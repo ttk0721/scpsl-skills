@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Measurement plugin for TEST servers only: cost of a ValidatedVisibility subscription. -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>HotBench</AssemblyName>
+    <RootNamespace>HotBench</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>false</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="LabApi"><HintPath>$(SL_REFERENCES)/LabApi.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(SL_REFERENCES)/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="CommandSystem.Core"><HintPath>$(SL_REFERENCES)/CommandSystem.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(SL_REFERENCES)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Mirror"><HintPath>$(SL_REFERENCES)/Mirror.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Template for every example: shared references come from ../Directory.Build.props. -->
+  <PropertyGroup>
+    <AssemblyName>Examples.AddingGameplayRules</AssemblyName>
+    <RootNamespace>Examples.AddingGameplayRules</RootNamespace>
+  </PropertyGroup>
+</Project>

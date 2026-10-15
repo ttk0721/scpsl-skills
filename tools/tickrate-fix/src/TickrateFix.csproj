@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    TickrateFix: a tiny LabAPI plugin that makes the server_tickrate config value take effect.
+    It changes one process-wide setting (the server's frame rate), so it is a plugin the server owner
+    installs on purpose, not library code another plugin can trigger. No dependencies beyond the game.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>TickrateFix</AssemblyName>
+    <RootNamespace>TickrateFix</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <Version>0.1.0</Version>
+    <Authors>scpsl-skills contributors</Authors>
+    <Description>Makes the server_tickrate config value take effect on an SCP:SL dedicated server.</Description>
+    <Copyright>MIT</Copyright>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>false</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="LabApi">
+      <HintPath>$(SL_REFERENCES)/LabApi.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(SL_REFERENCES)/Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(SL_REFERENCES)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

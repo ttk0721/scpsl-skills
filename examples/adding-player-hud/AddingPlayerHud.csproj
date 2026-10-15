@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Recipe example for the adding-player-hud skill. Shared references: ../Directory.Build.props. -->
+  <PropertyGroup>
+    <AssemblyName>Examples.AddingPlayerHud</AssemblyName>
+    <RootNamespace>Examples.AddingPlayerHud</RootNamespace>
+  </PropertyGroup>
+</Project>

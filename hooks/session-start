@@ -1,0 +1,243 @@
+#!/usr/bin/env bash
+# SessionStart hook for scpsl-skills.
+#
+# Injects the skill index ONLY when the working directory looks like an SCP:SL plugin project
+# (a project file that carries an SCP:SL-specific marker). Everywhere else it stays silent: a domain
+# library has no business taking context in unrelated sessions.
+#
+# WHEN IT RUNS (hooks.json cannot hold comments, so the reason lives here). The matcher is
+# "startup|clear|compact" and deliberately has no "resume". A resumed session replays the transcript,
+# which already holds the index injected when the session started; injecting again would put a second
+# copy into the context. "clear" and "compact" are different: both throw the earlier context away, so
+# the index has to come back. (superpowers uses the same matcher, for the same reason.)
+#
+# WHICH FILES ARE READ. *.csproj, Directory.Build.props and Directory.Build.targets first, then any other
+# *.props / *.targets: a project built like the examples in this repository keeps its LabApi references
+# in a Directory.Build.props above the .csproj, and a .csproj can pull references in from a shared
+# *.props or *.targets through <Import>. The same exact markers and comment stripping apply to all of them.
+# Directory.Build.props/.targets in the directories ABOVE the working directory are read too (up to 8
+# levels, and in a git work tree no higher than its top level), because that is where MSBuild looks.
+#
+# A project counts when it REFERENCES something SCP:SL-specific. Matching is on the reference itself,
+# case-sensitive, with XML comments removed first. A bare substring match (the first version) turned
+# the index on for a project that referenced Acme.PluginApi.csproj and for any .csproj whose comment
+# said "labapi". The markers:
+#   <Reference|PackageReference Include="...">  LabApi, Northwood.LabAPI, PluginAPI (the NWAPI assembly,
+#                                               exact name), NWAPI, EXILED / Exiled.* / ExMod.Exiled[.*]
+#   <HintPath>                                  into SCPSL_Data, or a file named LabApi.dll / Exiled*.dll
+# Assembly-CSharp is deliberately NOT a marker: every Unity mod project (BepInEx, MelonLoader, ...)
+# references it, so it would turn this hook on in every Unity modding session. ProjectReference is not
+# a marker either: it points at another project of the same solution, which is matched on its own.
+#
+# HOW THE FILES ARE FOUND, exactly:
+#   Inside a git work tree: `git ls-files` (tracked plus untracked-not-ignored). No directory walk. Only
+#   build residue is dropped (bin/ obj/ node_modules/ Library/ Temp/ and .git/).
+#   Outside git: ONE bounded `find` from the working directory: at most 8 levels deep, never descending
+#   into hidden directories (.git .vs .idea ...), bin, obj, node_modules, packages, Library or Temp, and
+#   capped by `timeout` (5 s) where that command exists. Candidates are read lazily, in chunks, and the
+#   reading stops at the FIRST chunk that holds a match; find is then cut off by SIGPIPE at its next
+#   write (or by the timeout), so after a hit it does not keep walking the tree. A project nested deeper
+#   than 8 levels is not seen outside git.
+#   In both cases at most SCPSL_SKILLS_MAX_FILES files (default 1000) are read, so a huge tree cannot make
+#   session start slow. Directory.Build.* and *.csproj are listed before other *.props/*.targets in git
+#   mode, so the cap does not hide them behind a pile of unrelated props.
+#
+# NO `set -o pipefail`. The detection used to be `... | grep -E ... | head -n 1 | grep -q .` under
+# pipefail: head exited after the first match, the next write of grep hit a closed pipe, grep died with
+# 141, and pipefail turned that into "not an SCP:SL project" while the marker HAD matched. It depended on
+# timing, so it showed up on slow machines and in repositories with several plugin projects, and the hook
+# went silent. Any consumer that exits early (grep -q, head, a loop with `return`) makes its producers
+# die with SIGPIPE, which is normal and must never count as a failure. So: pipefail stays off, and the
+# status of a detection pipeline is that of its last stage (the matcher), nothing else.
+
+set -u
+
+PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# What the agent is told. CLAUDE_PLUGIN_ROOT is the path Claude Code itself uses for this plugin
+# (native form on Windows); the directory of this script is the fallback when it is not set.
+AGENT_ROOT="${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}"
+AGENT_ROOT="${AGENT_ROOT%/}"
+
+MAX_FILES="${SCPSL_SKILLS_MAX_FILES:-1000}"
+case "$MAX_FILES" in '' | *[!0-9]*) MAX_FILES=1000 ;; esac
+CHUNK=32 # largest batch of files scanned at once (batches grow 1, 2, 4 ... up to this)
+FIND_DEPTH=8
+FIND_SECONDS=5
+
+# The input is one line per project file (comments stripped, newlines folded to spaces), so these are
+# plain single-line ERE patterns. [^>]* lets attributes come in any order (Version before Include).
+Q='["'"'"']'
+INCLUDE_ATTR='Include[[:space:]]*=[[:space:]]*'"$Q"
+NAME_END='["'"'"',]'
+REF_NAMES='(LabApi|Northwood\.LabAPI|PluginAPI|NWAPI|(EXILED|Exiled|ExMod\.Exiled)(\.[A-Za-z0-9_.]+)?)'
+REF_RE='<(Package)?Reference[[:space:]]([^>]*[[:space:]])?'"$INCLUDE_ATTR$REF_NAMES$NAME_END"
+HINT_RE='<HintPath>[^<]*SCPSL_Data|<HintPath>([^<]*[/\\])?(LabApi|Exiled(\.[A-Za-z0-9_]+)*)\.dll[[:space:]]*<'
+MARKER_RE="$REF_RE|$HINT_RE"
+
+# Directories that never hold a project the user is working on, and that are expensive to walk.
+# Applied to git output (a project file under obj/ is build residue, not a project). Tracked files under
+# packages/ or a hidden directory are kept here: git only lists what the user chose to put in the repo.
+PRUNED_RE='(^|/)(node_modules|\.git|bin|obj|Library|Temp)/'
+
+# MSBuild applies the first Directory.Build.props / .targets it finds walking UP from a project, so when
+# the session starts inside a project folder (examples/foo/ of a repository whose references live in
+# examples/Directory.Build.props) the file that carries the references is ABOVE the working directory.
+# Prints those ancestor files NUL-separated, nearest first. At most FIND_DEPTH levels up, and in a git
+# work tree no further than its top level: what lies above the repository is not part of the project.
+ancestor_build_files() {
+  local dir="$PWD" top="" parent name n=0
+  if command -v git >/dev/null 2>&1; then
+    top=$(git rev-parse --show-toplevel 2>/dev/null) || top=""
+  fi
+  while [ "$n" -lt "$FIND_DEPTH" ] && [ "$dir" != "$top" ]; do
+    parent=$(dirname "$dir")
+    [ "$parent" = "$dir" ] && break
+    dir="$parent"
+    n=$((n + 1))
+    for name in Directory.Build.props Directory.Build.targets; do
+      [ -f "$dir/$name" ] && printf '%s\0' "$dir/$name"
+    done
+  done
+  return 0
+}
+
+# Prints candidate project files, NUL-separated, most telling first.
+list_candidates() {
+  ancestor_build_files
+  # Inside a git work tree the index already knows every project file: no directory walk at all,
+  # which matters in a monorepo where `find` would crawl tens of thousands of directories on every
+  # startup/clear/compact. --others picks up a project that was just created and not yet added.
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local files
+    files=$(git ls-files -z --cached --others --exclude-standard -- '*.csproj' '*.props' '*.targets' 2>/dev/null |
+      tr '\0' '\n' | grep -vE "$PRUNED_RE")
+    {
+      printf '%s\n' "$files" | grep -E '(^|/)Directory\.Build\.(props|targets)$'
+      printf '%s\n' "$files" | grep -E '\.csproj$'
+      printf '%s\n' "$files" | grep -E '\.(props|targets)$' | grep -vE '(^|/)Directory\.Build\.(props|targets)$'
+    } | tr '\n' '\0'
+    return
+  fi
+  # No git: one find, bounded in depth, pruned, and (where `timeout` exists) in time. The caller reads it
+  # lazily and stops at the first hit. -name '.?*' is every hidden entry but "." itself.
+  local cmd=(find . -maxdepth "$FIND_DEPTH"
+    \( -name '.?*' -o -name node_modules -o -name bin -o -name obj -o -name packages -o -name Library -o -name Temp \) -prune
+    -o -type f \( -name '*.csproj' -o -name '*.props' -o -name '*.targets' \) -print0)
+  if command -v timeout >/dev/null 2>&1; then
+    cmd=(timeout "$FIND_SECONDS" "${cmd[@]}")
+  fi
+  "${cmd[@]}" </dev/null 2>/dev/null
+}
+
+# Has a working python3 (a Windows Store stub fails the version call and counts as absent).
+# SCPSL_SKILLS_NO_PYTHON=1 forces the shell paths so the tests can exercise them.
+have_python() {
+  [ "${SCPSL_SKILLS_NO_PYTHON:-0}" != "1" ] && [ "${SCPSL_SKILLS_JSON_FALLBACK:-0}" != "1" ] \
+    && command -v python3 >/dev/null 2>&1 && python3 -c 'import sys' >/dev/null 2>&1
+}
+
+# Reads NUL-separated project paths on stdin; prints each file as ONE line with XML comments removed.
+stripped_projects() {
+  if have_python; then
+    python3 -c '
+import re, sys
+for path in sys.stdin.buffer.read().split(b"\0"):
+    if not path:
+        continue
+    try:
+        text = open(path, "rb").read().decode("utf-8", "replace")
+    except OSError:
+        continue
+    text = re.sub(r"<!--.*?-->", " ", text, flags=re.S)
+    sys.stdout.write(" ".join(text.split()) + "\n")
+' 2>/dev/null
+    return
+  fi
+  # Shell fallback. Newlines become spaces first so a multi-line comment is one match for sed.
+  # ([^-]|-[^-])* is "anything without a double dash": an XML comment cannot contain one, and it keeps
+  # a greedy .* from swallowing real markup between two comments.
+  local f
+  while IFS= read -r -d '' f; do
+    tr '\r\n' '  ' <"$f" 2>/dev/null | sed -E 's/<!--([^-]|-[^-])*-->/ /g'
+    echo
+  done
+}
+
+# Does any of the given files carry a marker? The status is that of the LAST stage, grep -q. It exits
+# at the first matching line, so the stages before it may die with SIGPIPE; that is expected and, with
+# pipefail off, harmless.
+scan_files() {
+  printf '%s\0' "$@" | stripped_projects 2>/dev/null | grep -qE "$MARKER_RE"
+}
+
+looks_like_scpsl_project() {
+  local f seen=0 size=1 batch=()
+  # Process substitution, not a pipe: the loop can `return` at the first hit without waiting for the
+  # producer to finish. Batches start at one file and double up to CHUNK, so the first candidate is
+  # judged the moment find prints it, while a long list still costs only a handful of scans.
+  while IFS= read -r -d '' f; do
+    batch+=("$f")
+    seen=$((seen + 1))
+    if [ "${#batch[@]}" -ge "$size" ]; then
+      scan_files "${batch[@]}" && return 0
+      batch=()
+      [ "$size" -lt "$CHUNK" ] && size=$((size * 2))
+    fi
+    [ "$seen" -ge "$MAX_FILES" ] && break
+  done < <(list_candidates)
+  if [ "${#batch[@]}" -gt 0 ]; then
+    scan_files "${batch[@]}" && return 0
+  fi
+  return 1
+}
+
+if [ "${SCPSL_SKILLS_ALWAYS:-0}" != "1" ] && ! looks_like_scpsl_project; then
+  exit 0
+fi
+
+content=$(cat "${PLUGIN_ROOT}/skills/using-scpsl-skills/SKILL.md" 2>/dev/null || echo "scpsl-skills: index skill missing")
+
+# Escapes a string for use INSIDE a JSON string literal. JSON forbids every raw control character
+# U+0000..U+001F in a string, so all of them must be escaped, not just \n \r \t: one stray ESC or
+# form feed in the skill text would make the whole hook output unparseable and silently drop the index.
+escape_for_json() {
+  local s="$1" out
+  # Preferred: a real JSON encoder. A broken python3 (e.g. a Windows Store stub) fails the check
+  # and falls through to the pure-bash version below.
+  # SCPSL_SKILLS_NO_PYTHON=1 (or the older SCPSL_SKILLS_JSON_FALLBACK=1) skips it so the tests can
+  # exercise the pure-bash path.
+  if have_python; then
+    if out=$(printf '%s' "$s" | python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.stdin.buffer.read().decode("utf-8","replace"))[1:-1])' 2>/dev/null); then
+      printf '%s' "$out"
+      return
+    fi
+  fi
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  local i c rep
+  for ((i = 1; i <= 31; i++)); do
+    printf -v c "\\x$(printf '%02x' "$i")"
+    case "$i" in
+      8)  rep='\b' ;;
+      9)  rep='\t' ;;
+      10) rep='\n' ;;
+      12) rep='\f' ;;
+      13) rep='\r' ;;
+      *)  printf -v rep '\\u%04x' "$i" ;;
+    esac
+    s="${s//"$c"/$rep}"
+  done
+  printf '%s' "$s"
+}
+
+# The index names skills and a catalog by short name; an agent cannot open "events-catalog.md" without
+# knowing where the plugin lives. Absolute paths, so it can read them from any working directory.
+nl=$'\n'
+where="Plugin root: ${AGENT_ROOT}${nl}Skills directory: ${AGENT_ROOT}/skills (one folder per skill, each with a SKILL.md)"
+if [ -f "${PLUGIN_ROOT}/skills/labapi-events/events-catalog.md" ]; then
+  where="${where}${nl}Event catalog (frequency of every event): ${AGENT_ROOT}/skills/labapi-events/events-catalog.md"
+fi
+
+ctx="This is an SCP: Secret Laboratory plugin project. The scpsl-skills library applies.\n\n$(escape_for_json "$where")\n\n$(escape_for_json "$content")"
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$ctx"
+exit 0

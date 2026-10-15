@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    SlKit runtime library for SCP:SL LabAPI plugins (LabAPI 1.1.7 / game 14.2.7).
+    Compiled against the game's SCPSL_Data/Managed assemblies (see ../Directory.Build.props),
+    never against NuGet reference packs, so only APIs that exist in the server's Mono BCL compile.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>SlKit</AssemblyName>
+    <RootNamespace>SlKit</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- The root props' WarningsAsErrors=true is not a switch (it takes a list of warning codes); this one is. A missing doc comment (CS1591) or a broken cref fails the build. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Version>0.2.0</Version>
+    <Authors>scpsl-skills contributors</Authors>
+    <Description>Main-thread clock, marshalling, background worker, HTTP client, rate-limited logging and frame profiler for SCP:SL LabAPI plugins.</Description>
+    <Copyright>MIT</Copyright>
+    <!-- The server loads the dll from LabAPI/dependencies; a .deps.json or app.config is useless there. -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>false</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Net.Http">
+      <HintPath>$(SL_REFERENCES)/System.Net.Http.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(SL_REFERENCES)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Mirror">
+      <HintPath>$(SL_REFERENCES)/Mirror.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="LabApi">
+      <HintPath>$(SL_REFERENCES)/LabApi.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

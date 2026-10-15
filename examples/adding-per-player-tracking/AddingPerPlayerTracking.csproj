@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared references come from ../Directory.Build.props (same shape as minimal-plugin). -->
+  <PropertyGroup>
+    <AssemblyName>Examples.AddingPerPlayerTracking</AssemblyName>
+    <RootNamespace>Examples.AddingPerPlayerTracking</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The journal tests are a separate net10 project below this folder: keep them out of the plugin. -->
+    <Compile Remove="tests/**" />
+  </ItemGroup>
+</Project>

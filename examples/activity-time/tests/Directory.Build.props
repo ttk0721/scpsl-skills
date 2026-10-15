@@ -1,0 +1,6 @@
+<Project>
+  <!--
+    Stops MSBuild from importing examples/Directory.Build.props (net48, game references).
+    The Core tests run on plain modern .NET with no game assemblies at all: that is the point.
+  -->
+</Project>

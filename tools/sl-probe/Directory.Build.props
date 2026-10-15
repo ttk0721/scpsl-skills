@@ -1,0 +1,9 @@
+<Project>
+  <!--
+    sl-probe compiles against the same game assemblies as SlKit, so it reuses SlKit's props instead
+    of repeating them: SL_REFERENCES default, FrameworkPathOverride pointing at the game's Managed
+    folder, and the mscorlib/System/System.Core/netstandard references. Override the location with
+      dotnet build -p:SL_REFERENCES="/path/to/SCPSL_Data/Managed"
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)../SlKit/Directory.Build.props" />
+</Project>

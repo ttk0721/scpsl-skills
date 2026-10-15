@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Plain-.NET tests for the journal and the flush bookkeeping (JournalStore.cs, FlushBook.cs).
+    Both files have no game references, which is why they are separate from ActivityTracker.cs.
+    Run with "dotnet run" in Release. Exit code 0 means every test passed. This checks logic and
+    file handling on modern .NET, not the server's Mono BCL: the net48 build checks that.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../JournalStore.cs" Link="Plugin/JournalStore.cs" />
+    <Compile Include="../../FlushBook.cs" Link="Plugin/FlushBook.cs" />
+  </ItemGroup>
+</Project>

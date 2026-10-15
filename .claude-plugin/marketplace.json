@@ -1,0 +1,16 @@
+{
+  "name": "scpsl-skills",
+  "description": "Marketplace for the scpsl-skills plugin",
+  "owner": {
+    "name": "ttk0721"
+  },
+  "plugins": [
+    {
+      "name": "scpsl-skills",
+      "description": "Skills and tools for writing correct, cheap SCP: Secret Laboratory server plugins on LabAPI",
+      "version": "0.2.0",
+      "homepage": "https://github.com/ttk0721/scpsl-skills",
+      "source": "./"
+    }
+  ]
+}
